@@ -2,12 +2,42 @@ const express=require('express');
 const connectDB=require('./config/database');
 const app=express();
 const User=require('./models/user')
+const {validateSignUpData}=require('./utils/validations')
+const bcrypt=require('bcrypt');
+const cookieParser=require('cookie-parser');
+const jwt=require('jsonwebtoken');
+const {userAuth}=require('./middlewares/auth');
 
 app.use(express.json());
+app.use(cookieParser());
+
+app.get('/profile',userAuth,async(req, res)=>{
+    try{
+
+
+    const user=req.user;
+    res.send(user);
+    }catch(err){
+        res.status(404).send("error:",err.message);
+    }
+        
+});
+
 app.post('/signUp',async(req,res)=>{
-    console.log(req.body);
-    const user=new User(req.body);
     try {
+        validateSignUpData(req);
+        
+        const {firstName,lastName,emailId,password}=req.body;
+        const passwordHash=await bcrypt.hash(password,10);
+        console.log(passwordHash);
+
+        const user=new User({
+            firstName,
+            lastName,
+            emailId,
+            password:passwordHash
+        });
+    
         await user.save();
         res.send("User created successfully");
     } catch (error) {
@@ -15,6 +45,36 @@ app.post('/signUp',async(req,res)=>{
     }
     
 });
+
+app.post('/login',async(req,res)=>{
+    
+    try {
+        const {emailId,password}=req.body;
+        const user=await User.findOne({emailId: emailId});
+        if(!user){
+            throw new Error("invalid credentials");
+        }
+        const isValidPassword=bcrypt.compare(password,user.password);
+        
+        const token=await jwt.sign({_id:user._id},"kavya@134#");
+        console.log(token);
+
+        
+        if(isValidPassword){
+            res.cookie("token",token);
+            res.send("Logged in successfully");
+        }else{
+            throw new Error("Invalid password");
+        }
+    }catch(err){
+        res.status(404).send("an error occurred:" + err.message);
+    }
+})
+app.post('/sendConnectionRequest',userAuth,(req, res) => {
+    const user=req.user;
+    console.log("sending the connection request");
+    res.send(user.firstName+" sent the connection request");
+})
 
 app.get('/user',async(req,res)=>{
 
