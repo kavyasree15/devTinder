@@ -47,8 +47,11 @@ userRouter.get("/user/feed",userAuth,async(req,res)=>{
     try {
 
         const loggedInUser=req.user;
-        const page=req.query.page;
-        const limit=req.query.limit;
+
+        const page=parseInt(req.query.page);
+        let limit=parseInt(req.query.limit);
+        limit =limit>50?50:limit;
+
         const skip=(page-1)*limit;
 
         const connectionRequests=await ConnectionRequest.find({
@@ -74,7 +77,7 @@ userRouter.get("/user/feed",userAuth,async(req,res)=>{
           .skip(skip)
           .limit(limit); 
 
-        res.send(users);
+        res.send({data:users});
     } catch (error) {
         res.status(400).json({message:error.message});
     }
