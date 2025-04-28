@@ -11,7 +11,8 @@ authRouter.post('/signUp',async(req,res)=>{
     try {
         validateSignUpData(req);
         
-        const {firstName,lastName,emailId,password}=req.body;
+        const { firstName, lastName, emailId, password, about ,photoUrl} = req.body;
+
         const passwordHash=await bcrypt.hash(password,10);
         console.log(passwordHash);
 
@@ -19,11 +20,16 @@ authRouter.post('/signUp',async(req,res)=>{
             firstName,
             lastName,
             emailId,
-            password:passwordHash
+            password:passwordHash,
+            about,
+            photoUrl,
+            
         });
     
-        await user.save();
-        res.send("User created successfully");
+        const savedUser=await user.save();
+        const token=await user.getJWT();
+        res.cookie("token",token);
+        res.json({message:"user saved successfully",data:savedUser});
     } catch (error) {
         res.status(404).send("an error occurred"+error.message);
     }
@@ -37,7 +43,7 @@ authRouter.post('/login',async(req,res)=>{
         const {emailId,password}=req.body;
         const user=await User.findOne({emailId: emailId});
         if(!user){
-            throw new Error("invalid credentials");
+            res.status(401).send("please login");
         }
         const isValidPassword=await user.validatePassword(password);
         

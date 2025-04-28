@@ -6,22 +6,24 @@ const user = require("../models/user");
 const userRouter=express.Router();
 const User=require('../models/user');
 
-userRouter.get("/user/requests/received",userAuth,async(req,res)=>{
+userRouter.get("/user/requests/received", userAuth, async (req, res) => {
     try {
-        const loggedInUser=req.user;
-        const connectionRequests=await ConnectionRequest.find({
-            toUserId:loggedInUser._id,
-            status:"interested",
-        }).populate("fromUserId",["firstName","lastName"]);
-
-        res.json({
-            message:"data fetched successfully",
-            data:connectionRequests,
+        const loggedInUser = req.user;
+        const connectionRequests = await ConnectionRequest.find({
+            toUserId: loggedInUser._id,
+            status: "interested",
         })
+        .populate("fromUserId", ['firstName', 'lastName', 'photoUrl', 'about', 'age', 'gender'])
+        .populate("toUserId", ['firstName', 'lastName', 'photoUrl', 'about', 'age', 'gender']);
+        
+        res.json({
+            message: "Data fetched successfully",
+            data: connectionRequests,
+        });
     } catch (error) {
-        res.statusCode(400).send("ERROR "+error.message);
+        res.status(400).send("ERROR " + error.message);
     }
-})
+});
 
 userRouter.get("/user/connections",userAuth,async(req,res)=>{
    
@@ -32,18 +34,18 @@ userRouter.get("/user/connections",userAuth,async(req,res)=>{
                 {toUserId:loggedInUser._id,status:"accepted"},
                 {fromUserId:loggedInUser._id,status:"accepted"},
             ],
-         }).populate("fromUserId",["firstName","lastName"])
-           .populate("toUserId",["firstName","lastName"]);
+         }).populate('fromUserId', 'firstName lastName photoUrl about age gender')
+           .populate('toUserId', 'firstName lastName photoUrl about age gender');
 
          res.json({data:connectionRequests});
 
     } catch (error) {
-        res.statusCode(400).send("ERROR "+error.message);
+        res.status(400).send("ERROR "+error.message);
     }
 
 })
 
-userRouter.get("/user/feed",userAuth,async(req,res)=>{
+userRouter.get("/feed",userAuth,async(req,res)=>{
     try {
 
         const loggedInUser=req.user;
@@ -73,7 +75,7 @@ userRouter.get("/user/feed",userAuth,async(req,res)=>{
                 {_id:{$nin:Array.from(hideUsersFromFeed)}},
                 {_id:{$ne:loggedInUser._id}}
             ]
-        }).select("firstName lastName")
+        }).select("firstName lastName photoUrl about age gender")
           .skip(skip)
           .limit(limit); 
 
